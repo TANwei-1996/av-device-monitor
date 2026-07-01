@@ -1,0 +1,91 @@
+{
+  "app": {
+    "title": "AV Device Monitor",
+    "language": "Language",
+    "settings": "Settings"
+  },
+  "device": {
+    "title": "Device Panel",
+    "microphone": "Microphone",
+    "camera": "Camera",
+    "noDevice": "No device detected",
+    "connect": "Device connected",
+    "disconnect": "Device disconnected",
+    "usbInfo": "USB Info",
+    "vid": "Vendor ID",
+    "pid": "Product ID",
+    "serial": "Serial Number",
+    "manufacturer": "Manufacturer",
+    "product": "Product",
+    "firmware": "Firmware Version",
+    "usbVersion": "USB Version",
+    "deviceType": "Device Type",
+    "powerMode": "Power Mode",
+    "refresh": "Refresh Devices"
+  },
+  "audio": {
+    "title": "Audio Panel",
+    "volume": "Volume",
+    "level": "Level",
+    "waveform": "Waveform",
+    "spectrum": "Spectrum",
+    "denoise": "Noise Reduction",
+    "eq": "Equalizer",
+    "gain": "Gain",
+    "dbfs": "dBFS",
+    "startCapture": "Start Capture",
+    "stopCapture": "Stop Capture",
+    "noAudioSource": "No audio source selected"
+  },
+  "recorder": {
+    "title": "Recording Control",
+    "start": "Start Recording",
+    "stop": "Stop Recording",
+    "pause": "Pause",
+    "resume": "Resume",
+    "sampleRate": "Sample Rate",
+    "bitDepth": "Bit Depth",
+    "channels": "Channels",
+    "mono": "Mono",
+    "stereo": "Stereo",
+    "duration": "Duration",
+    "fileSize": "File Size",
+    "savePath": "Save Path",
+    "recording": "Recording",
+    "stopped": "Stopped"
+  },
+  "log": {
+    "title": "Log Panel",
+    "level": {
+      "all": "All",
+      "error": "Error",
+      "warn": "Warning",
+      "info": "Info",
+      "debug": "Debug"
+    },
+    "export": "Export Logs",
+    "clear": "Clear",
+    "search": "Search logs..."
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "paths": {
+      "title": "Path Settings",
+      "logs": "Log Save Path",
+      "recordings": "Recording Save Path",
+      "config": "Config File Path",
+      "browse": "Browse...",
+      "reset": "Reset to Default"
+    }
+  },
+  "video": {
+    "title": "Video Panel",
+    "preview": "Video Preview",
+    "resolution": "Resolution",
+    "frameRate": "Frame Rate",
+    "codec": "Codec",
+    "noCamera": "No camera detected"
+  }
+}

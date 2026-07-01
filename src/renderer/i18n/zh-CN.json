@@ -1,0 +1,91 @@
+{
+  "app": {
+    "title": "音视频设备监测工具",
+    "language": "语言",
+    "settings": "设置"
+  },
+  "device": {
+    "title": "设备面板",
+    "microphone": "麦克风",
+    "camera": "摄像头",
+    "noDevice": "未检测到设备",
+    "connect": "设备已连接",
+    "disconnect": "设备已断开",
+    "usbInfo": "USB 信息",
+    "vid": "厂商ID",
+    "pid": "产品ID",
+    "serial": "序列号",
+    "manufacturer": "厂商",
+    "product": "产品",
+    "firmware": "固件版本",
+    "usbVersion": "USB版本",
+    "deviceType": "设备类型",
+    "powerMode": "供电模式",
+    "refresh": "刷新设备"
+  },
+  "audio": {
+    "title": "音频面板",
+    "volume": "音量",
+    "level": "电平",
+    "waveform": "波形",
+    "spectrum": "频谱",
+    "denoise": "降噪",
+    "eq": "均衡器",
+    "gain": "增益",
+    "dbfs": "dBFS",
+    "startCapture": "开始采集",
+    "stopCapture": "停止采集",
+    "noAudioSource": "未选择音频源"
+  },
+  "recorder": {
+    "title": "录制控制",
+    "start": "开始录制",
+    "stop": "停止录制",
+    "pause": "暂停",
+    "resume": "继续",
+    "sampleRate": "采样率",
+    "bitDepth": "位深",
+    "channels": "声道",
+    "mono": "单声道",
+    "stereo": "立体声",
+    "duration": "录制时长",
+    "fileSize": "文件大小",
+    "savePath": "保存路径",
+    "recording": "录制中",
+    "stopped": "已停止"
+  },
+  "log": {
+    "title": "日志面板",
+    "level": {
+      "all": "全部",
+      "error": "错误",
+      "warn": "警告",
+      "info": "信息",
+      "debug": "调试"
+    },
+    "export": "导出日志",
+    "clear": "清空",
+    "search": "搜索日志..."
+  },
+  "settings": {
+    "title": "设置",
+    "language": "语言",
+    "theme": "主题",
+    "paths": {
+      "title": "路径设置",
+      "logs": "日志保存路径",
+      "recordings": "录制文件保存路径",
+      "config": "配置文件路径",
+      "browse": "浏览...",
+      "reset": "恢复默认"
+    }
+  },
+  "video": {
+    "title": "视频面板",
+    "preview": "视频预览",
+    "resolution": "分辨率",
+    "frameRate": "帧率",
+    "codec": "编码格式",
+    "noCamera": "未检测到摄像头"
+  }
+}
