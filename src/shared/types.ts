@@ -1,9 +1,16 @@
-// ===== Device Types =====
+// 服务类型
+/**
+ * 音频服务信息
+ *  设备ID
+ *  设备名称
+ *  系统默认设备 
+ * boolean: 数据类型 -- True/False
+ */
 export interface AudioDeviceInfo {
   id: string;
   name: string;
-  isDefault: boolean;
-  isInput: boolean; // true = microphone, false = speaker
+  isDefault: boolean; // True:默认设备，反之不是
+  isInput: boolean;// True:外部输入设备
 }
 
 export interface VideoDeviceInfo {
@@ -31,7 +38,7 @@ export interface USBDeviceInfo {
   deviceSubclass: number;
   deviceType: string;  // "Audio", "Video", "HID", etc.
   powerMode: string;   // "bus-powered" | "self-powered"
-}
+}  
 
 export interface MappedDevice {
   usb: USBDeviceInfo | null;
@@ -121,36 +128,36 @@ export interface IpcChannels {
   'device:get-video-devices': () => VideoDeviceInfo[];
   'device:get-usb-devices': () => USBDeviceInfo[];
   'device:map-devices': () => MappedDevice[];
-  
+
   // Audio
   'audio:start-capture': (deviceId: string) => void;
   'audio:stop-capture': () => void;
   'audio:set-denoise-level': (level: number) => void;
   'audio:set-eq': (bands: EQBand[]) => void;
   'audio:set-gain': (gain: number) => void;
-  
+
   // Recording
   'recorder:start': (config: RecordingConfig) => string;
   'recorder:stop': () => RecordingResult;
   'recorder:pause': () => void;
   'recorder:resume': () => void;
   'recorder:get-status': () => RecordingStatus;
-  
+
   // Video
   'video:get-stream-info': (deviceId: string) => VideoDeviceInfo;
-  
+
   // Log
   'log:get-entries': () => LogEntry[];
   'log:export': (format: 'txt' | 'json') => string;
   'log:clear': () => void;
-  
+
   // Settings
   'settings:get': () => AppSettings;
   'settings:set': (settings: Partial<AppSettings>) => void;
   'settings:get-paths': () => PathConfig;
   'settings:set-path': (key: keyof PathConfig, value: string) => void;
   'settings:reset-paths': () => void;
-  
+
   // Dialog
   'dialog:open-directory': () => string | null;
 }

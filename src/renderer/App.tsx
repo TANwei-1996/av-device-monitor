@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ConfigProvider, theme, Select, Button, Space, Layout, Typography } from 'antd';
+import { ConfigProvider, theme, Button, Space, Layout, Typography } from 'antd';
 import { SettingOutlined, ReloadOutlined, GlobalOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import DevicePanel from './components/DevicePanel';
@@ -9,7 +9,6 @@ import RecorderPanel from './components/RecorderPanel';
 import LogPanel from './components/LogPanel';
 import SettingsDrawer from './components/SettingsDrawer';
 import { useDeviceStore } from './stores/deviceStore';
-import { useAudioStore } from './stores/audioStore';
 import { useLogStore } from './stores/logStore';
 
 const { Header, Sider, Content } = Layout;
@@ -21,17 +20,11 @@ const App: React.FC = () => {
   const [language, setLanguage] = useState(i18n.language);
 
   const fetchAllDevices = useDeviceStore((s) => s.fetchAllDevices);
-  const setAudioData = useAudioStore((s) => s.setAudioData);
   const addLogEntry = useLogStore((s) => s.addEntry);
 
   useEffect(() => {
     // Fetch devices on mount
     fetchAllDevices();
-
-    // Subscribe to audio data events
-    const unsubAudio = window.electron.onAudioData((data) => {
-      setAudioData(data);
-    });
 
     // Subscribe to log entries
     const unsubLog = window.electron.onLogEntry((entry) => {
@@ -44,7 +37,6 @@ const App: React.FC = () => {
     });
 
     return () => {
-      unsubAudio();
       unsubLog();
       unsubDevice();
     };

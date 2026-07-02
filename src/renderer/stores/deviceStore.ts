@@ -43,7 +43,14 @@ interface DeviceState {
   selectVideoDevice: (device: VideoDeviceInfo | null) => void;
 }
 
-export const useDeviceStore = create<DeviceState>((set) => ({
+// Common resolutions to assign to video devices
+const COMMON_RESOLUTIONS = [
+  { width: 1920, height: 1080, frameRates: [30, 60] },
+  { width: 1280, height: 720, frameRates: [30, 60] },
+  { width: 640, height: 480, frameRates: [30, 60] },
+];
+
+export const useDeviceStore = create<DeviceState>((set, get) => ({
   audioDevices: [],
   videoDevices: [],
   usbDevices: [],
@@ -51,32 +58,104 @@ export const useDeviceStore = create<DeviceState>((set) => ({
   selectedVideoDevice: null,
   isLoading: false,
 
+  // Use browser's native enumerateDevices() for real audio endpoints
   fetchAudioDevices: async () => {
     try {
-      const devices = await window.electron.getAudioDevices();
-      set({ audioDevices: devices });
-      // Auto-select default device
-      const defaultDevice = devices.find((d: AudioDeviceInfo) => d.isDefault);
-      if (defaultDevice) {
-        set({ selectedAudioDevice: defaultDevice });
+      // Request permission first (needed on some browsers)
+      try {
+        const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        tempStream.getTracks().forEach((t) => t.stop());
+      } catch {
+        // Permission denied or no device — continue with enumeration
+      }
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs: AudioDeviceInfo[] = [];
+      let defaultId = '';
+
+      // The first audioinput with empty label is treated as default
+      for (const d of devices) {
+        if (d.kind === 'audioinput') {
+          if (!defaultId) defaultId = d.deviceId;
+          audioInputs.push({
+            id: d.deviceId,
+            name: d.label || `Microphone ${audioInputs.length + 1}`,
+            isDefault: d.deviceId === 'default' || (!defaultId),
+            isInput: true,
+          });
+        }
+      }
+
+      // Mark the first one as default if no 'default' deviceId found
+      if (audioInputs.length > 0 && !audioInputs.some((d) => d.isDefault)) {
+        audioInputs[0].isDefault = true;
+      }
+
+      set({ audioDevices: audioInputs });
+
+      // Auto-select default device, or keep current selection
+      const current = get().selectedAudioDevice;
+      if (current) {
+        const still = audioInputs.find((d) => d.id === current.id);
+        if (still) {
+          set({ selectedAudioDevice: still });
+        } else {
+          const def = audioInputs.find((d) => d.isDefault) || audioInputs[0] || null;
+          set({ selectedAudioDevice: def });
+        }
+      } else {
+        const def = audioInputs.find((d) => d.isDefault) || audioInputs[0] || null;
+        set({ selectedAudioDevice: def });
       }
     } catch (err) {
       console.error('Failed to fetch audio devices:', err);
     }
   },
 
+  // Use browser's native enumerateDevices() for real video devices
   fetchVideoDevices: async () => {
     try {
-      const devices = await window.electron.getVideoDevices();
-      set({ videoDevices: devices });
-      if (devices.length > 0) {
-        set({ selectedVideoDevice: devices[0] });
+      // Request permission first
+      try {
+        const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        tempStream.getTracks().forEach((t) => t.stop());
+      } catch {
+        // Permission denied or no device — continue with enumeration
+      }
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs: VideoDeviceInfo[] = [];
+
+      for (const d of devices) {
+        if (d.kind === 'videoinput') {
+          videoInputs.push({
+            id: d.deviceId,
+            name: d.label || `Camera ${videoInputs.length + 1}`,
+            resolutions: [...COMMON_RESOLUTIONS],
+          });
+        }
+      }
+
+      set({ videoDevices: videoInputs });
+
+      // Auto-select first device, or keep current selection
+      const current = get().selectedVideoDevice;
+      if (current) {
+        const still = videoInputs.find((d) => d.id === current.id);
+        if (still) {
+          set({ selectedVideoDevice: still });
+        } else {
+          set({ selectedVideoDevice: videoInputs[0] || null });
+        }
+      } else if (videoInputs.length > 0) {
+        set({ selectedVideoDevice: videoInputs[0] });
       }
     } catch (err) {
       console.error('Failed to fetch video devices:', err);
     }
   },
 
+  // USB devices still come from main process (needs native access)
   fetchUSBDevices: async () => {
     try {
       const devices = await window.electron.getUSBDevices();
@@ -90,9 +169,9 @@ export const useDeviceStore = create<DeviceState>((set) => ({
     set({ isLoading: true });
     try {
       await Promise.all([
-        useDeviceStore.getState().fetchAudioDevices(),
-        useDeviceStore.getState().fetchVideoDevices(),
-        useDeviceStore.getState().fetchUSBDevices(),
+        get().fetchAudioDevices(),
+        get().fetchVideoDevices(),
+        get().fetchUSBDevices(),
       ]);
     } finally {
       set({ isLoading: false });

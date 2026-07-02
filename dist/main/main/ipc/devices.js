@@ -35,29 +35,19 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerDeviceIPC = registerDeviceIPC;
 const electron_1 = require("electron");
-const child_process_1 = require("child_process");
 const logger_1 = require("../logger");
 const constants_1 = require("../../shared/constants");
 function registerDeviceIPC() {
+    // Audio & video device enumeration is now done in the renderer process
+    // via navigator.mediaDevices.enumerateDevices() for accurate endpoint info.
+    // These handlers remain as fallbacks returning empty arrays.
     electron_1.ipcMain.handle(constants_1.IPC_CHANNELS.GET_AUDIO_DEVICES, async () => {
-        try {
-            logger_1.logger.info('Device', 'Enumerating audio devices');
-            return await enumerateAudioDevices();
-        }
-        catch (err) {
-            logger_1.logger.error('Device', 'Failed to enumerate audio devices', err);
-            return [];
-        }
+        logger_1.logger.debug('Device', 'Audio device request (renderer handles enumeration)');
+        return [];
     });
     electron_1.ipcMain.handle(constants_1.IPC_CHANNELS.GET_VIDEO_DEVICES, async () => {
-        try {
-            logger_1.logger.info('Device', 'Enumerating video devices');
-            return await enumerateVideoDevices();
-        }
-        catch (err) {
-            logger_1.logger.error('Device', 'Failed to enumerate video devices', err);
-            return [];
-        }
+        logger_1.logger.debug('Device', 'Video device request (renderer handles enumeration)');
+        return [];
     });
     electron_1.ipcMain.handle(constants_1.IPC_CHANNELS.GET_USB_DEVICES, async () => {
         try {
@@ -70,49 +60,6 @@ function registerDeviceIPC() {
         }
     });
     logger_1.logger.info('IPC', 'Device IPC handlers registered');
-}
-async function enumerateAudioDevices() {
-    try {
-        const psCommand = 'Get-CimInstance -ClassName Win32_SoundDevice | Select-Object Name, DeviceID, Status | ConvertTo-Json';
-        const result = (0, child_process_1.execSync)('powershell.exe -NoProfile -Command "' + psCommand + '"', { encoding: 'utf-8', timeout: 10000 });
-        if (!result.trim())
-            return [];
-        const devices = JSON.parse(result);
-        const deviceList = Array.isArray(devices) ? devices : [devices];
-        return deviceList.map((d, i) => ({
-            id: d.DeviceID || 'audio-' + i,
-            name: d.Name || 'Unknown Audio Device',
-            isDefault: i === 0,
-            isInput: true,
-        }));
-    }
-    catch (err) {
-        logger_1.logger.warn('Device', 'PowerShell audio enumeration failed, using fallback');
-        return [];
-    }
-}
-async function enumerateVideoDevices() {
-    try {
-        const psCommand = "Get-CimInstance -ClassName Win32_PnPEntity | Where-Object { $_.PNPClass -eq 'Camera' -or $_.PNPClass -eq 'Image' } | Select-Object Name, DeviceID, Status | ConvertTo-Json";
-        const result = (0, child_process_1.execSync)('powershell.exe -NoProfile -Command "' + psCommand + '"', { encoding: 'utf-8', timeout: 10000 });
-        if (!result.trim())
-            return [];
-        const devices = JSON.parse(result);
-        const deviceList = Array.isArray(devices) ? devices : [devices];
-        return deviceList.map((d, i) => ({
-            id: d.DeviceID || 'video-' + i,
-            name: d.Name || 'Unknown Video Device',
-            resolutions: [
-                { width: 1920, height: 1080, frameRates: [30, 60] },
-                { width: 1280, height: 720, frameRates: [30, 60] },
-                { width: 640, height: 480, frameRates: [30, 60] },
-            ],
-        }));
-    }
-    catch (err) {
-        logger_1.logger.warn('Device', 'PowerShell video enumeration failed, using fallback');
-        return [];
-    }
 }
 async function enumerateUSBDevices() {
     try {
