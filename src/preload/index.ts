@@ -16,6 +16,7 @@ const IPC = {
   PAUSE_RECORDING: 'recorder:pause',
   RESUME_RECORDING: 'recorder:resume',
   GET_RECORDING_STATUS: 'recorder:get-status',
+  WRITE_RECORDING_SAMPLES: 'recorder:write-samples',
   GET_VIDEO_STREAM_INFO: 'video:get-stream-info',
   GET_LOG_ENTRIES: 'log:get-entries',
   EXPORT_LOGS: 'log:export',
@@ -57,6 +58,7 @@ const electronAPI = {
   pauseRecording: () => ipcRenderer.invoke(IPC.PAUSE_RECORDING),
   resumeRecording: () => ipcRenderer.invoke(IPC.RESUME_RECORDING),
   getRecordingStatus: () => ipcRenderer.invoke(IPC.GET_RECORDING_STATUS),
+  writeRecordingSamples: (samples: number[]) => ipcRenderer.send(IPC.WRITE_RECORDING_SAMPLES, samples),
   
   // Log operations
   getLogEntries: () => ipcRenderer.invoke(IPC.GET_LOG_ENTRIES),

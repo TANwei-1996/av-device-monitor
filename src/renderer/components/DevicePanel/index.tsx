@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { List, Select, Tag, Card, Descriptions, Spin, Empty, Typography, Divider } from 'antd';
-import { UsbOutlined, AudioOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import { List, Select, Tag, Card, Descriptions, Spin, Empty, Typography, Divider, Button } from 'antd';
+import { UsbOutlined, AudioOutlined, VideoCameraOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useDeviceStore } from '../../stores/deviceStore';
 
@@ -17,6 +17,7 @@ const DevicePanel: React.FC = () => {
     isLoading,
     selectAudioDevice,
     selectVideoDevice,
+    fetchAllDevices,
   } = useDeviceStore();
 
   // Find matching USB device for selected audio/video device
@@ -36,9 +37,18 @@ const DevicePanel: React.FC = () => {
 
   return (
     <div style={{ padding: 4 }}>
-      <Title level={5} style={{ marginBottom: 12 }}>
-        {t('device.title')}
-      </Title>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <Title level={5} style={{ margin: 0 }}>
+          {t('device.title')}
+        </Title>
+        <Button
+          type="text"
+          size="small"
+          icon={<ReloadOutlined spin={isLoading} />}
+          onClick={fetchAllDevices}
+          loading={isLoading}
+        />
+      </div>
 
       {/* Audio Device Select */}
       <div style={{ marginBottom: 16 }}>

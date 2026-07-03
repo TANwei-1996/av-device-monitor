@@ -95,6 +95,7 @@ export const IPC_CHANNELS = {
   PAUSE_RECORDING: 'recorder:pause',
   RESUME_RECORDING: 'recorder:resume',
   GET_RECORDING_STATUS: 'recorder:get-status',
+  WRITE_RECORDING_SAMPLES: 'recorder:write-samples',
   
   // Video
   GET_VIDEO_STREAM_INFO: 'video:get-stream-info',

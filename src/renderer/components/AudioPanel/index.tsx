@@ -1,11 +1,14 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { Card, Slider, Row, Col, Button, Space, Typography, Statistic } from 'antd';
+import { Card, Slider, Row, Col, Button, Space, Typography } from 'antd';
 import { PlayCircleOutlined, PauseCircleOutlined, SoundOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useAudioStore } from '../../stores/audioStore';
 import { useDeviceStore } from '../../stores/deviceStore';
 
 const { Text } = Typography;
+
+// Noise gate threshold in dBFS — signals below this are treated as silence
+const NOISE_GATE_DB = -50;
 
 const AudioPanel: React.FC = () => {
   const { t } = useTranslation();
@@ -32,12 +35,15 @@ const AudioPanel: React.FC = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
+  const scriptNodeRef = useRef<ScriptProcessorNode | null>(null);
   const rafRef = useRef<number>(0);
+  const isRecordingRef = useRef(false);
 
   // Stop capture helper
   const stopCapture = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = 0;
+    if (scriptNodeRef.current) { scriptNodeRef.current.disconnect(); scriptNodeRef.current = null; }
     if (sourceRef.current) { sourceRef.current.disconnect(); sourceRef.current = null; }
     if (gainNodeRef.current) { gainNodeRef.current.disconnect(); gainNodeRef.current = null; }
     if (analyserRef.current) { analyserRef.current.disconnect(); analyserRef.current = null; }
@@ -49,7 +55,6 @@ const AudioPanel: React.FC = () => {
       audioCtxRef.current.close();
       audioCtxRef.current = null;
     }
-    // Reset meter display
     if (meterFillRef.current) {
       meterFillRef.current.style.width = '0%';
       meterFillRef.current.className = 'level-meter-fill good';
@@ -80,7 +85,6 @@ const AudioPanel: React.FC = () => {
       const source = audioCtx.createMediaStreamSource(stream);
       sourceRef.current = source;
 
-      // Gain node for volume control
       const gainNode = audioCtx.createGain();
       gainNodeRef.current = gainNode;
 
@@ -89,11 +93,25 @@ const AudioPanel: React.FC = () => {
       analyser.smoothingTimeConstant = 0.8;
       analyserRef.current = analyser;
 
-      source.connect(gainNode).connect(analyser);
+      // ScriptProcessorNode to capture raw samples for recording
+      const scriptNode = audioCtx.createScriptProcessor(4096, 1, 1);
+      scriptNodeRef.current = scriptNode;
+
+      source.connect(gainNode);
+      gainNode.connect(analyser);
+      gainNode.connect(scriptNode);
+      scriptNode.connect(audioCtx.destination);
+
+      // Send raw samples to main process recorder when recording is active
+      scriptNode.onaudioprocess = (e) => {
+        if (!isRecordingRef.current) return;
+        const inputData = e.inputBuffer.getChannelData(0);
+        const samples = Array.from(inputData);
+        window.electron.writeRecordingSamples(samples);
+      };
 
       setCapturing(true);
 
-      // Start render loop
       const timeData = new Uint8Array(analyser.frequencyBinCount);
       const freqData = new Uint8Array(analyser.frequencyBinCount);
       const waveformLength = 200;
@@ -104,17 +122,21 @@ const AudioPanel: React.FC = () => {
         analyser.getByteTimeDomainData(timeData);
         analyser.getByteFrequencyData(freqData);
 
-        // Compute dBFS from time domain
+        // Compute dBFS
         let sumSquares = 0;
         for (let i = 0; i < timeData.length; i++) {
           const v = (timeData[i] - 128) / 128;
           sumSquares += v * v;
         }
         const rms = Math.sqrt(sumSquares / timeData.length);
-        const dbfs = 20 * Math.log10(rms + 1e-10);
+        const rawDbfs = 20 * Math.log10(rms + 1e-10);
 
-        // Update meter display via DOM refs (avoid React re-render at 60fps)
-        const meterPercent = Math.max(0, Math.min(100, ((dbfs + 60) / 60) * 100));
+        // Noise gate: below threshold = silence
+        const isSilent = rawDbfs < NOISE_GATE_DB;
+        const dbfs = isSilent ? -Infinity : rawDbfs;
+
+        // Update meter via DOM refs
+        const meterPercent = isSilent ? 0 : Math.max(0, Math.min(100, ((rawDbfs + 60) / 60) * 100));
         if (meterFillRef.current) {
           meterFillRef.current.style.width = `${meterPercent}%`;
           const cls = meterPercent < 60 ? 'good' : meterPercent < 85 ? 'warn' : 'danger';
@@ -126,14 +148,14 @@ const AudioPanel: React.FC = () => {
           dbfsValueRef.current.style.color = meterPercent > 85 ? '#ff4d4f' : '#fff';
         }
 
-        // Downsample waveform
+        // Downsample waveform (with noise gate)
         const waveform: number[] = [];
         const step = Math.floor(timeData.length / waveformLength);
         for (let i = 0; i < waveformLength; i++) {
-          waveform.push((timeData[i * step] - 128) / 128);
+          waveform.push(isSilent ? 0 : (timeData[i * step] - 128) / 128);
         }
 
-        // Aggregate spectrum into 64 bins
+        // Aggregate spectrum (with noise gate)
         const spectrum: number[] = [];
         const binSize = Math.floor(freqData.length / spectrumLength);
         for (let i = 0; i < spectrumLength; i++) {
@@ -141,7 +163,7 @@ const AudioPanel: React.FC = () => {
           for (let j = 0; j < binSize; j++) {
             sum += freqData[i * binSize + j];
           }
-          spectrum.push(sum / binSize / 255);
+          spectrum.push(isSilent ? 0 : sum / binSize / 255);
         }
 
         setAudioData({ dbfs, waveform, spectrum, timestamp: Date.now() });
@@ -218,6 +240,13 @@ const AudioPanel: React.FC = () => {
     return () => { stopCapture(); };
   }, [stopCapture]);
 
+  // Expose recording control for RecorderPanel
+  useEffect(() => {
+    (window as any).__setRecordingActive = (active: boolean) => {
+      isRecordingRef.current = active;
+    };
+  }, []);
+
   const handleToggleCapture = async () => {
     if (isCapturing) {
       stopCapture();
@@ -233,12 +262,13 @@ const AudioPanel: React.FC = () => {
       {/* Level Meter */}
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={4}>
-          <Statistic
-            title={t('audio.dbfs')}
-            value={<span ref={dbfsValueRef}>-Inf</span>}
-            suffix="dB"
-            valueStyle={{ fontSize: 20 }}
-          />
+          <div style={{ lineHeight: 1.2 }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>{t('audio.dbfs')}</Text>
+            <div style={{ fontSize: 20, fontWeight: 600, marginTop: 4 }}>
+              <span ref={dbfsValueRef} style={{ color: '#fff' }}>-Inf</span>
+              <Text type="secondary" style={{ fontSize: 14, marginLeft: 4 }}>dB</Text>
+            </div>
+          </div>
         </Col>
         <Col span={20} style={{ display: 'flex', alignItems: 'center' }}>
           <div className="level-meter" style={{ flex: 1 }}>

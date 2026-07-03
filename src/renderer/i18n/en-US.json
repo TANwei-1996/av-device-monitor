@@ -86,6 +86,11 @@
     "resolution": "Resolution",
     "frameRate": "Frame Rate",
     "codec": "Codec",
-    "noCamera": "No camera detected"
+    "noCamera": "No camera detected",
+    "actualResolution": "Actual Resolution",
+    "aspectRatio": "Aspect Ratio",
+    "liveFrameRate": "Live Frame Rate",
+    "bitrate": "Bitrate",
+    "droppedFrames": "Dropped Frames"
   }
 }

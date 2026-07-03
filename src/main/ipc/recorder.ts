@@ -186,6 +186,11 @@ export function registerRecorderIPC() {
     return recorder.getStatus();
   });
 
+  // High-frequency sample writing — use .on (fire-and-forget) for performance
+  ipcMain.on(IPC_CHANNELS.WRITE_RECORDING_SAMPLES, (_event, samples: number[]) => {
+    recorder.writeSamples(new Float32Array(samples));
+  });
+
   logger.info('IPC', 'Recorder IPC handlers registered');
 }
 

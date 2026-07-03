@@ -26,19 +26,25 @@ const RecorderPanel: React.FC = () => {
     });
   }, []);
 
+  // Poll recording status from main process for real file size and duration
   useEffect(() => {
     if (isRecording && !isPaused) {
-      timerRef.current = setInterval(() => {
-        setDuration((d) => d + 1);
-        setFileSize((prev) => prev + sampleRate * channels * (bitDepth / 8));
-      }, 1000);
+      timerRef.current = setInterval(async () => {
+        try {
+          const status = await window.electron.getRecordingStatus();
+          setDuration(Math.floor(status.duration));
+          setFileSize(status.fileSize);
+        } catch {
+          // ignore polling errors
+        }
+      }, 500);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isRecording, isPaused, sampleRate, bitDepth, channels]);
+  }, [isRecording, isPaused]);
 
   const handleStart = async () => {
     try {
@@ -53,6 +59,11 @@ const RecorderPanel: React.FC = () => {
       setDuration(0);
       setFileSize(0);
       setFilepath(fp);
+
+      // Activate sample bridge in AudioPanel
+      const setRecordingActive = (window as any).__setRecordingActive;
+      if (setRecordingActive) setRecordingActive(true);
+
       message.success(t('recorder.start'));
     } catch (err: any) {
       message.error(err.message || 'Failed to start recording');
@@ -61,6 +72,10 @@ const RecorderPanel: React.FC = () => {
 
   const handleStop = async () => {
     try {
+      // Deactivate sample bridge first
+      const setRecordingActive = (window as any).__setRecordingActive;
+      if (setRecordingActive) setRecordingActive(false);
+
       const result = await window.electron.stopRecording();
       setIsRecording(false);
       setIsPaused(false);
@@ -73,6 +88,10 @@ const RecorderPanel: React.FC = () => {
   };
 
   const handlePause = async () => {
+    // Pause sample flow
+    const setRecordingActive = (window as any).__setRecordingActive;
+    if (setRecordingActive) setRecordingActive(false);
+
     await window.electron.pauseRecording();
     setIsPaused(true);
   };
@@ -80,6 +99,10 @@ const RecorderPanel: React.FC = () => {
   const handleResume = async () => {
     await window.electron.resumeRecording();
     setIsPaused(false);
+
+    // Resume sample flow
+    const setRecordingActive = (window as any).__setRecordingActive;
+    if (setRecordingActive) setRecordingActive(true);
   };
 
   const handleSelectDir = async () => {
